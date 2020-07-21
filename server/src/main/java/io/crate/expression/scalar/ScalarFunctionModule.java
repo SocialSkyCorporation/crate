@@ -73,7 +73,10 @@ import io.crate.expression.scalar.systeminformation.CurrentSchemaFunction;
 import io.crate.expression.scalar.systeminformation.CurrentSchemasFunction;
 import io.crate.expression.scalar.systeminformation.FormatTypeFunction;
 import io.crate.expression.scalar.systeminformation.ObjDescriptionFunction;
+import io.crate.expression.scalar.systeminformation.PgFunctionIsVisible;
 import io.crate.expression.scalar.systeminformation.PgGetExpr;
+import io.crate.expression.scalar.systeminformation.PgGetFunctionOid;
+import io.crate.expression.scalar.systeminformation.PgGetFunctionResult;
 import io.crate.expression.scalar.systeminformation.PgTypeofFunction;
 import io.crate.expression.scalar.systeminformation.VersionFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimeFunction;
@@ -179,5 +182,8 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
         VersionFunction.register(this);
         ObjDescriptionFunction.register(this);
         FormatTypeFunction.register(this);
+        PgGetFunctionResult.register(this);
+        PgFunctionIsVisible.register(this);
+        PgGetFunctionOid.register(this);
     }
 }

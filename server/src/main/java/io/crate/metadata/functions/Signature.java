@@ -27,6 +27,7 @@ import io.crate.common.collections.Lists2;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -314,6 +315,10 @@ public final class Signature implements Writeable {
         return Signature.builder(this)
             .features(features)
             .build();
+    }
+
+    public int getOid() {
+        return OidHash.functionOid(name);
     }
 
     public FunctionName getName() {
