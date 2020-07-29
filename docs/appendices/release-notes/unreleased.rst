@@ -62,4 +62,6 @@ Changes
 Fixes
 =====
 
-None
+- Fixed a regression introduced in 4.2.0 that caused ``sum`` and ``avg``
+  global aggregates to return incorrect results when used on columns of
+  ``real`` or ``double precision`` data types.

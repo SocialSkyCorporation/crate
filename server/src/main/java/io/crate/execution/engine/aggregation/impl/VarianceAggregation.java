@@ -225,6 +225,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
                 return new LongVariance(fieldTypes.get(0).name());
 
             case FloatType.ID:
+                return new FloatVariance(fieldTypes.get(0).name());
             case DoubleType.ID:
                 return new DoubleVariance(fieldTypes.get(0).name());
 
@@ -268,7 +269,6 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
         }
     }
 
-
     private static class DoubleVariance implements DocValueAggregator<VarianceState> {
 
         private final String columnName;
@@ -292,6 +292,41 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
         public void apply(VarianceState state, int doc) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 double value = NumericUtils.sortableLongToDouble(values.nextValue());
+                state.variance.increment(value);
+                state.hadValue = true;
+            }
+        }
+
+        @Nullable
+        @Override
+        public Object partialResult(VarianceState state) {
+            return state.hadValue ? state.variance : null;
+        }
+    }
+
+    private static class FloatVariance implements DocValueAggregator<VarianceState> {
+
+        private final String columnName;
+        private SortedNumericDocValues values;
+
+        public FloatVariance(String columnName) {
+            this.columnName = columnName;
+        }
+
+        @Override
+        public VarianceState initialState() {
+            return new VarianceState();
+        }
+
+        @Override
+        public void loadDocValues(LeafReader reader) throws IOException {
+            values = DocValues.getSortedNumeric(reader, columnName);
+        }
+
+        @Override
+        public void apply(VarianceState state, int doc) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                double value = NumericUtils.sortableIntToFloat((int) values.nextValue());
                 state.variance.increment(value);
                 state.hadValue = true;
             }

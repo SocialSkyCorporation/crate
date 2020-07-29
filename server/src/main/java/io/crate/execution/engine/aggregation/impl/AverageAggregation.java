@@ -264,6 +264,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
                 return new AvgLong(fieldTypes.get(0).name());
 
             case FloatType.ID:
+                return new AvgFloat(fieldTypes.get(0).name());
             case DoubleType.ID:
                 return new AvgDouble(fieldTypes.get(0).name());
 
@@ -306,7 +307,6 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
         }
     }
 
-
     static class AvgDouble implements DocValueAggregator<AverageAggregation.AverageState> {
 
         private final String columnName;
@@ -331,6 +331,39 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 state.count++;
                 state.sum += NumericUtils.sortableLongToDouble(values.nextValue());
+            }
+        }
+
+        @Override
+        public Object partialResult(AverageAggregation.AverageState state) {
+            return state;
+        }
+    }
+
+    static class AvgFloat implements DocValueAggregator<AverageAggregation.AverageState> {
+
+        private final String columnName;
+        private SortedNumericDocValues values;
+
+        public AvgFloat(String columnName) {
+            this.columnName = columnName;
+        }
+
+        @Override
+        public AverageState initialState() {
+            return new AverageAggregation.AverageState();
+        }
+
+        @Override
+        public void loadDocValues(LeafReader reader) throws IOException {
+            values = DocValues.getSortedNumeric(reader, columnName);
+        }
+
+        @Override
+        public void apply(AverageAggregation.AverageState state, int doc) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                state.count++;
+                state.sum += NumericUtils.sortableIntToFloat((int) values.nextValue());
             }
         }
 
