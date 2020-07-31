@@ -23,7 +23,6 @@
 package io.crate.expression.scalar.systeminformation;
 
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
-import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -38,7 +37,7 @@ import java.util.Locale;
 import java.util.Properties;
 
 
-public class PgGetFunctionResultTest extends AbstractScalarFunctionsTest {
+public class PgFunctionIsVisibleTest extends AbstractScalarFunctionsTest {
 
     private static final Properties PROPS = new Properties();
     static {
@@ -47,7 +46,6 @@ public class PgGetFunctionResultTest extends AbstractScalarFunctionsTest {
         PROPS.put("password", "");
     }
 
-    @Test
     public void test_connection() throws Exception{
         List<FunctionInfo> functions = new ArrayList<>();
         try (Connection conn = DriverManager.getConnection("jdbc:postgresql://localhost:5433/", PROPS)) {
@@ -69,11 +67,11 @@ public class PgGetFunctionResultTest extends AbstractScalarFunctionsTest {
             SCALAR, TABLE, UNKNOWN_TYPE;
 
             public static Type of(short type) {
-                return switch (type) {
-                    case 1 -> SCALAR;
-                    case 2 -> TABLE;
-                    default -> UNKNOWN_TYPE;
-                };
+                switch (type) {
+                    case 1: return SCALAR;
+                    case 2: return TABLE;
+                    default: return UNKNOWN_TYPE;
+                }
             }
         }
 
