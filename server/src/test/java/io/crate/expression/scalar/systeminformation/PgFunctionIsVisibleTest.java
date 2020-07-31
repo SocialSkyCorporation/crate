@@ -23,118 +23,40 @@
 package io.crate.expression.scalar.systeminformation;
 
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.metadata.FunctionProvider;
+import io.crate.metadata.functions.Signature;
+import io.crate.metadata.pgcatalog.OidHash;
+import org.junit.Test;
 
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
-import java.util.Properties;
-
 
 public class PgFunctionIsVisibleTest extends AbstractScalarFunctionsTest {
 
-    private static final Properties PROPS = new Properties();
-    static {
-        PROPS.put("user", "crate");
-//        PROPS.put("user", "postgres");
-        PROPS.put("password", "");
-    }
-
-    public void test_connection() throws Exception{
-        List<FunctionInfo> functions = new ArrayList<>();
-        try (Connection conn = DriverManager.getConnection("jdbc:postgresql://localhost:5433/", PROPS)) {
-            DatabaseMetaData meta = conn.getMetaData();
-            ResultSet function = meta.getFunctions(null, null, null);
-            while (function.next()) {
-                functions.add(new FunctionInfo(function));
+    @Test
+    public void test_system_function_visibility() {
+        for (List<FunctionProvider> providers : functions.functionResolvers().values()) {
+            for (FunctionProvider sysFunc : providers) {
+                Signature signature = sysFunc.getSignature();
+                assertEvaluate(
+                    "pg_function_is_visible(" + OidHash.functionSignatureOid(signature) + ")",
+                    true);
             }
-        }
-        Collections.sort(functions, Comparator.comparing(FunctionInfo::getType));
-        for (FunctionInfo info : functions) {
-            System.out.println(info);
         }
     }
 
-    public static class FunctionInfo {
+    @Test
+    public void test_user_defined_function_visibility() {
 
-        public enum Type {
-            SCALAR, TABLE, UNKNOWN_TYPE;
+        // Register some UDF functions
 
-            public static Type of(short type) {
-                switch (type) {
-                    case 1: return SCALAR;
-                    case 2: return TABLE;
-                    default: return UNKNOWN_TYPE;
-                }
+        for (List<FunctionProvider> providers : functions.udfFunctionResolvers().values()) {
+            for (FunctionProvider sysFunc : providers) {
+                Signature signature = sysFunc.getSignature();
+                System.out.println("> " + signature);
+                assertEvaluate(
+                    "pg_function_is_visible(" + OidHash.functionSignatureOid(signature) + ")",
+                    true);
             }
-        }
-
-        private Type type;
-        private String catalog;
-        private String schema;
-        private String name;
-        private String remarks;
-        private String specificName;
-
-        public FunctionInfo(String catalog,
-                            String schema,
-                            String name,
-                            String remarks,
-                            short type,
-                            String specificName) {
-            this.type = Type.of(type);
-            this.catalog = catalog;
-            this.schema = schema;
-            this.name = name;
-            this.remarks = remarks;
-            this.specificName = specificName;
-        }
-
-        public FunctionInfo(ResultSet rs) throws SQLException {
-            this(rs.getString(1),
-                 rs.getString(2),
-                 rs.getString(3),
-                 rs.getString(4),
-                 rs.getShort(5),
-                 rs.getString(6));
-        }
-
-        public Type getType() {
-            return type;
-        }
-
-        public String getCatalog() {
-            return catalog;
-        }
-
-        public String getSchema() {
-            return schema;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public String getRemarks() {
-            return remarks;
-        }
-
-        public String getSpecificName() {
-            return specificName;
-        }
-
-        @Override
-        public String toString() {
-            return String.format(
-                Locale.ENGLISH,
-                "%s %s.%s.%s (%s) '%s'",
-                type, catalog, schema, name, specificName, remarks);
         }
     }
 }

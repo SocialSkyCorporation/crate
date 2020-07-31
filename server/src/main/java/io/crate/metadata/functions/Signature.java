@@ -317,10 +317,6 @@ public final class Signature implements Writeable {
             .build();
     }
 
-    public int getOid() {
-        return OidHash.functionOid(name);
-    }
-
     public FunctionName getName() {
         return name;
     }

@@ -26,7 +26,11 @@ import io.crate.common.collections.Lists2;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.RelationInfo;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.TypeSignature;
 import org.apache.lucene.util.BytesRef;
+
+import java.util.List;
 
 import static org.apache.lucene.util.StringHelper.murmurhash3_x86_32;
 
@@ -61,6 +65,30 @@ public final class OidHash {
     static int constraintOid(String relationName, String constraintName, String constraintType) {
         BytesRef b = new BytesRef(Type.CONSTRAINT.toString() + relationName + constraintName + constraintType);
         return murmurhash3_x86_32(b.bytes, b.offset, b.length, 0);
+    }
+
+    public static int functionSignatureOid(Signature signature) {
+        String schema = signature.getName().schema();
+        BytesRef b = new BytesRef(
+            new StringBuilder(Type.PROC.toString())
+                .append(schema == null ? "" : schema)
+                .append(signature.getName().name())
+                .append(typeSignatureStr(signature.getArgumentTypes()))
+                .toString());
+        return murmurhash3_x86_32(b.bytes, b.offset, b.length, 0);
+    }
+
+    private static String typeSignatureStr(List<TypeSignature> args) {
+        return Lists2.joinOn(", ", args, arg -> {
+            try {
+                return arg.createType().getName();
+            } catch(IllegalArgumentException i) {
+                // generic signatures, e.g. E, array(E)
+                String baseName = arg.getBaseTypeName();
+                List<TypeSignature> innerParams = arg.getParameters();
+                return innerParams.isEmpty() ? "<" + baseName + ">" : baseName + typeSignatureStr(innerParams);
+            }
+        });
     }
 
     public static int functionOid(FunctionName functionName) {

@@ -26,26 +26,26 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionProvider;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.pgcatalog.OidHash;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.TypeLiteral;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiFunction;
 
 public abstract class AbstractFunctionModule<T extends FunctionImplementation> extends AbstractModule {
 
+    private static ConcurrentMap<Integer, Signature> SIGNATURE_BY_OID = new ConcurrentHashMap<>();
+
     private HashMap<FunctionName, List<FunctionProvider>> functionImplementations = new HashMap<>();
     private MapBinder<FunctionName, List<FunctionProvider>> implementationsBinder;
-    private Map<Integer, Signature> signatureByOid = new HashMap<>();
-    private Set<String> schemas = new HashSet<>();
-
 
     public void register(Signature signature, BiFunction<Signature, Signature, FunctionImplementation> factory) {
         List<FunctionProvider> functions = functionImplementations.computeIfAbsent(
@@ -56,11 +56,7 @@ public abstract class AbstractFunctionModule<T extends FunctionImplementation> e
             throw new IllegalStateException(
                 "A function already exists for signature = " + signature);
         }
-        signatureByOid.put(signature.getOid(), signature);
-        for (Map.Entry<Integer, Signature> e : signatureByOid.entrySet()) {
-            System.out.printf(Locale.ENGLISH,"REGISTER %d -> %s\n", e.getKey(), e.getValue().getName());
-        }
-        schemas.add(signature.getName().schema());
+        SIGNATURE_BY_OID.put(OidHash.functionSignatureOid(signature), signature);
         functions.add(new FunctionProvider(signature, factory));
     }
 
@@ -68,7 +64,7 @@ public abstract class AbstractFunctionModule<T extends FunctionImplementation> e
         if (funcOid == null) {
             new IllegalArgumentException("function oid cannot be null");
         }
-        return signatureByOid.get(funcOid);
+        return SIGNATURE_BY_OID.get(funcOid);
     }
 
     public abstract void configureFunctions();
